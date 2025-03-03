@@ -82,12 +82,10 @@ async function scrapeDUCalendar() {
                 time: $(element).find('.event-time').text().trim() || null,
                 eventUrl
             });
-
-            console.log(`📅 Found Event: ${eventItems[eventItems.length - 1].title} | ${eventItems[eventItems.length - 1].date} | Link: ${eventUrl}`);
         });
 
-        // Loop through events and fetch descriptions asynchronously
-        for (const event of eventItems) {
+        // Fetch event descriptions concurrently
+        const eventPromises = eventItems.map(async (event) => {
             if (event.eventUrl) {
                 try {
                     const { data: eventPage } = await axios.get(event.eventUrl);
@@ -99,7 +97,9 @@ async function scrapeDUCalendar() {
             }
             delete event.eventUrl; // Remove URL from final JSON output
             events.push(event);
-        }
+        });
+
+        await Promise.all(eventPromises); // Wait for all descriptions to be fetched
 
         fs.writeJsonSync(path.join(resultsDir, 'calendar_events.json'), { events }, { spaces: 2 });
         console.log('✅ DU Calendar events data saved successfully.');
